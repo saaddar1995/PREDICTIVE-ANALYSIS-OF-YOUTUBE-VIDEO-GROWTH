@@ -1,0 +1,67 @@
+###################### Code For Fetching Youtube DATA Using Data API #################################
+
+
+!pip install schedule # for scheduling
+
+#Youtube data api Refrence : https://developers.google.com/youtube/v3/docs
+
+# below code fetching youtube data video data and save in data frame
+import pandas as pd
+import schedule
+import time
+from googleapiclient.discovery import build
+
+api_key = 'AIzaSyAWYQRfFQUqPHStRrwxnUUvd2HJX_B1Vr8'  # API key from Google Console
+
+youtube = build('youtube', 'v3', developerKey=api_key)
+
+video_id = 'QN_gFsF_sCg' #add youtube id
+
+
+video_details_df = pd.DataFrame(columns=['Video ID', 'Title', 'Views', 'Likes', 'Date'])
+
+def fetch_video_details():
+    try:
+        # by using YouTube Data API fetching video details features
+        video_response = youtube.videos().list(
+            part='snippet,statistics',
+            id=video_id
+        ).execute()
+
+        # Extracting the video details BY indexing
+        video_title = video_response['items'][0]['snippet']['title']
+        video_views = video_response['items'][0]['statistics']['viewCount']
+        video_likes = video_response['items'][0]['statistics']['likeCount']
+        current_date = pd.Timestamp.now().strftime('%Y-%m-%d')
+
+        # Append the details to the DataFrame
+        global video_details_df
+        video_details_df = video_details_df.append({'Video ID': video_id, 'Title': video_title, 'Views': video_views, 'Likes': video_likes, 'Date': current_date}, ignore_index=True)
+
+    except Exception as e:
+        print('! Code Not Running due to ERROR !')
+        print(e)
+
+    # Refrence : https://www.geeksforgeeks.org/python-schedule-library/
+    # Stop scheduling after 30 minutes  and save DataFrame to CSV
+    if time.time() - start_time >= 1800:
+        schedule.clear()
+        video_details_df.to_csv('video_details.csv', index=False)
+        print('Data saved to video_details.csv')
+        return
+
+
+    print('Video Details:')
+    print(video_details_df)
+
+start_time = time.time()
+
+
+schedule.every(20).seconds.do(fetch_video_details)
+
+
+while time.time() - start_time < 1800:
+    schedule.run_pending()
+    time.sleep(1)
+
+  
